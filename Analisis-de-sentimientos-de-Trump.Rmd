@@ -1,0 +1,77 @@
+---
+title: "Análisis de sentimientos de Donald Trump"
+subtitle: "Universidad Nacional Autónoma de México, Facultad de Economía"
+author: "Profesor: Cesar Hernández"
+date: "01/06/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(rvest)
+library(tm)
+library(DT)
+library(wordcloud)
+library(syuzhet)
+```
+
+### Obteniendo los 23 tweets más recientes de Trump mediante scraping
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+t_url <- "https://twitter.com/realDonaldTrump"
+html <- read_html(t_url)
+tweet <- html_nodes(html, ".tweet-text")
+t_tweet <- data.frame(html_text(tweet, trim = TRUE))
+t_tweet
+```
+
+###
+
+```{r include=FALSE}
+write.table(t_tweet, file = "trump_tweet.txt")
+```
+
+###
+
+```{r include=FALSE}
+text <- readLines("trump_tweet.txt") #file.choose()
+```
+
+### Creando una tabla de frecuencias de las palabras más usadas
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+t_tweet_txt <- Corpus(VectorSource(text))
+t_tweet_txt <- tm_map(t_tweet_txt, removePunctuation)
+t_tweet_txt <- tm_map(t_tweet_txt, function(x)removeWords(x,stopwords("english")))
+t_tweet_txt <- tm_map(t_tweet_txt, content_transformer(tolower))
+t_tweet_txt <- tm_map(t_tweet_txt, removeNumbers)
+t_tweet_txt <- tm_map(t_tweet_txt, stripWhitespace)
+dtm <- TermDocumentMatrix(t_tweet_txt)
+m <- as.matrix(dtm)
+v <- sort(rowSums(m),decreasing=TRUE)
+d <- data.frame(word = names(v),freq=v)
+datatable(d)
+```
+
+### Creando un wordcloud de las palabras usadas con mayor frecuencia
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+set.seed(1234)
+wordcloud(words = d$word, freq = d$freq, min.freq = 0,
+          max.words=100, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+```
+
+### Haciendo una gráfica de 8 sentimientos y 2 tipos de valencias
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+s <- get_nrc_sentiment(text)
+barplot(colSums(s),
+        las = 2,
+        col = rainbow(10),
+        ylab = "Count",
+        main = "Sentiment Scores for Trump Tweets")
+```
+
+Este script fue generado mediante R en `r format(Sys.Date(), format = "%B %d, %Y")` y forma parte de las actividades realizadas en las materias de Estadística y Taller IV.
+Facultad de Economía, Ciudad Universitaria.
+Contacto: cghv94@outlook.es y @[cghv94](https://twitter.com/cghv94). Esta obra está bajo una [licencia de Creative Commons, Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.es). Creative Commons (CC).
